@@ -72,12 +72,22 @@ This has loaded an object that is simultaneously of class `data.frame` and `sf`:
 class(world)
 ```
 
-Let's look the first 2 rows and 3 columns of this object.
-The output shows 2 major differences compared with a regular `data.frame`: the inclusion of additional geographical data (`geometry type`, `dimension`, `bbox` and CRS information - `espf (SRID)`, `proj4string`), and the presence of a 4^th^ `geometry` column (result not shown):
+Let's look the first summary of this object.
+The output shows that objects with class `sf` generally behave like a regular `data.frame`: all but the last column was summarised as they would be in a non-geographical data frame.
+he inclusion of additional geographical data (`geometry type`, `dimension`, `bbox` and CRS information - `espf (SRID)`, `proj4string`), and the presence of a 4^th^ `geometry` column (shown):
 
 ```{r, results='hide'}
 summary(world)
 ```
+
+```
+##          geometry  
+## MULTIPOLYGON :177  
+## epsg:4326    :  0  
+## +proj=long...:  0 
+```
+
+The summary for this final column show 3 things that are special about spatial data: it has a 
 
 All this may seem rather complex, especially for a class system that is supposed to be simple.
 However, there are good reasons for organising things this way and using **sf**.
