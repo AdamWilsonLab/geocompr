@@ -13,3 +13,76 @@
 - st_bbox
 - projectRaster
 -->
+
+## Układy współrzędnych (CRS)
+Układ współrzędnych (ang. *coordinate reference system* - CRS) jest podstawowym elementem każdego obiektu przestrzennego. To on reprezentuje model przestrzeni, na podstawie którego dane są przekształcane - czyli odwzorowują powierzchnię kuli na płaskim arkuszu mapy. Ich głównym celem jest zapewnienie jak najmniejszego błędu podczas tego odwzorowania. 
+
+Najczęsciej stosowane są dwa rodzaje układów współrzędnych:
+
+- Geograficzne - wykorzystujące długość i szerokość geograficzną (wartości kątowe - w stopniach) służace do określania położenia punktu; są powiązane z wybraną elipsoidą, odwzorowaniem i południkiem początkowym. Przykładem takiego odzworowania jest układ WGS84 stosowany w GPSach.  
+
+- Prostokątne płaskie - przedstawiane w miarach liniowych (np. w metrach); są powiązane z punktem przyłożenia, wybraną elipsoidą, odwzorowaniem i południkiem początkowym. Przykładem takiego odzworowania jest używany w Polsce układ 1992.  
+
+Na świecie występują setki różnych układów współrzędnych, stosowanych w różnych krajach, latach, stworzonych do różnych zastosowań i skal. Do korzystania z danych pochodzących różnych źródeł i opartych o różne układy współrzędnych, należy znać ich definicje. Aby ułatwić odnalezienie odpowiedniej definicji układu współrzędnych można skorzystać z listy EPSG (ang. *European Petroleum Survey Group*). Jest to baza danych, gdzie każdy układ współrzędnych ma przypisany unikatowy numer. Lista EPSG jest zawarta w bibliotece PROJ.4, do której możliwy jest dostęp w R za pomocą pakietu `rgdal`.
+
+Najczęsciej stosowanymi układami współrzędnych dla polskich danych są:
+
+- Układ 1992 - EPSG:2180 - jednolity dla całej Polski układ stosowany dla danych w dużych skalach (poniżej 1:10 000). Jest to też podstawowy układ współrzędnych stosowany na geoportalu.
+
+- Układ 1942 - polski układ stosowany głównie w mapach wojskowych w skali 1:100 000 oraz 1:50 000. Można wyróżnić dwa warianty układu 1942:
+
+    - O pasach południkowych szerokości 3$^\circ$. EPSG:3329; EPSG:3330; EPSG:3331; EPSG:3332
+    - O pasach południkowych szerokości 6$^\circ$. EPSG:3333; EPSG:3334; EPSG:3335
+
+- Układ 1965 - polski układ współrzędnych, w którym obszar Polski został podzielony na pięć stref. Każda z nich posiada odmienną definicję. Strefa I - EPSG:3120; strefa II - EPSG:2172; strefa III - EPSG:2173; strefa IV - EPSG:2174; strefa V - EPSG:2175
+
+- Układ 2000 - polski układ będący następcą 1965, stosowany w geodezji (skale poniżej 1:10 000). Najczęściej występuje na mapach ewidencji. Strefa V - EPSG:2176, Strefa VI - 2177, Strefa VII - 2178, Strefa VIII - 2179
+
+- Układ WGS84 - EPSG:4326 - jest to układ geograficzny, jednolity dla całego świata. Jest podstawowym układem stosowanym w urządzeniach do nawigacji (GPS) oraz przez NATO.
+
+- Google Mercator - EPSG:3785 - to układ współrzędnych dla całego świata. Jest zapisywany w metrach, stosowany do map internetowych - Google Maps, OpenStreetMap, itd.
+
+Najkompletniejszą bazą informacji dotyczących różnych układów współrzędnych jest strona http://www.spatialreference.org/.
+
+<!--http://www.gis-support.pl/uklady-wspolrzednych-w-praktyce/-->
+
+# Zarządzanie układami współrzędnych (CRS)
+
+```{r, inlude=FALSE}
+library('rgdal')
+library('raster')
+wektor_punkt <- readOGR(dsn = 'dane/bdo250', layer = 'lotn_point', encoding = 'Windows-1250')
+r <- raster('dane/srtm/srtm_40_02.tif')
+```
+
+Najprostszym sposobem nadawania i zmiany układu współrzędnych w R jest wykorzystanie listy EPSG. Jest ona zawarta w bibliotece PROJ.4, dostępnej w R za pomocą pakietu `rgdal`.
+
+Aby sprawdzić jaki układ współrzędnych jest nadany obiektowi przestrzennemu należy skorzystać z funkcji `proj4string`. W przypadku braku układu otrzymamy informację NA.
+
+```{r, eval=FALSE}
+proj4string(sp)
+proj4string(r)
+```
+
+Gdy nasz obiekt przestrzenny nie ma nadanego układu współrzędnych, lub też nadany układ jest błędny - należy to poprawić za pomocą funkcji `CRS`: 
+
+```{r}
+library('sp')
+proj4string(wektor_punkt) <- CRS('+init=epsg:2180')
+proj4string(r) <- CRS('+init=epsg:4326')
+```
+
+Warto pomiętać, że przypisanie obiektowi układu współrzędnych nie wpływa na wartości w nim zawarte. Aby przetworzyć układ współrzednych w obiektach wektorowych należy skorzystać z funkcji `spTransform`:
+
+```{r}
+proj4string(wektor_punkt)
+wektor_punkt_WGS84 <- spTransform(wektor_punkt, CRS('+init=epsg:4326'))
+proj4string(wektor_punkt_WGS84)
+```
+
+Do zmiany układu współrzędnych w obiektach rastrowych służy funkcja `projectRaster`. Należy podać jej nazwę naszego obiektu rastrowego oraz definicję układu współrzędnych w formacie PROJ.4.  
+
+```{r}
+r_1992 <- projectRaster(r, crs='+init=epsg:2180') #zmiana układu współrzędnych dla dużych rastrów jest czasochłonna
+proj4string(r_1992)
+```
